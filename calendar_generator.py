@@ -57,6 +57,7 @@ class RotationDay(object):
         self.desc2 = desc2
 
         day = self.dayNumber - 1
+        # put the blocks in the right order
         blocks = BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
         
         if len(blocks) == 7:
@@ -217,10 +218,6 @@ class RotationDay(object):
             blocks.append(self.title2)
         if not self.open:
             return blocks
-        # for i in range(1, 11):
-            # if i == 10 and self.isWed:
-                # continue
-            # blocks.append(self.block(blockNum=i))
         blocks.append(self.block1)
         blocks.append(self.block2)
         blocks.append(self.block3)
@@ -245,25 +242,18 @@ if __name__ == "__main__":
 
             writer = csv.DictWriter(csvout, field_names, dialect="excel")
             writer.writeheader()
-            i = 0
+
             for row in reader:
                 date = datetime.datetime.strptime(row[0], "%m-%d-%Y")
                 if date.weekday() >= 5:
                     continue
-                # print(row)
                 isOpen = row[3] == "TRUE"
                 try:
                     number = int(row[4])
                 except:
                     continue
                 
-                desc1, desc2, msActivity, usActivity = row[5:]
-                # desc2 = row[6]
-                # day = RotationDay(date, number, isOpen, desc1, desc2, msActivity, usActivity)
                 day = RotationDay(date, number, isOpen, *(row[5:]))
-                # print(day.title1)
                 for block in day.getBlocks():
                     writer.writerow(block.csv)
-                    i += 1
-    pass
 
