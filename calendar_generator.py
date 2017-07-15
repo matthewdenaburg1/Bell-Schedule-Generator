@@ -78,8 +78,7 @@ class RotationDay(object):
 
     def _getWedTime(self, b):
         date = datetime.datetime(self.date.year, self.date.month, self.date.day)
-        if b == 1:
-            # start time for block 1
+        if b == 1:  # start time for block 1
             s = date.replace(hour=8, minute=0)
             e = date.replace(hour=8, minute=45)
         elif b == 2:
