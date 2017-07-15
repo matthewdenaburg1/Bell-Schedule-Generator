@@ -8,6 +8,32 @@ BLOCKS = ["A", "G", "F", "E", "D", "C", "B"]
 BLOCKS = list(map(lambda a: a + " Block", BLOCKS))
 
 
+WED_TIMES = [
+        (datetime.time(8, 0), datetime.time(8, 45)),
+        (datetime.time(8, 50), datetime.time(10)),
+        (datetime.time(10, 0), datetime.time(10, 15)),
+        (datetime.time(10, 15), datetime.time(11)),
+        (datetime.time(11, 5), datetime.time(11, 45)),
+        (datetime.time(11, 50), datetime.time(12, 20)),
+        (datetime.time(12, 20), datetime.time(13)),
+        (datetime.time(13), datetime.time(13, 45)),
+        (datetime.time(13, 50), datetime.time(14, 35)),
+        (None, None)
+    ]
+TIMES = [
+        (datetime.time(8), datetime.time(8, 50)),
+        (datetime.time(8, 55), datetime.time(10, 5)),
+        (datetime.time(10, 5), datetime.time(10, 20)),
+        (datetime.time(10, 20), datetime.time(11, 10)),
+        (datetime.time(11, 15), datetime.time(11, 55)),
+        (datetime.time(12), datetime.time(12, 40)),
+        (datetime.time(12, 40), datetime.time(13, 20)),
+        (datetime.time(13, 20), datetime.time(14, 10)),
+        (datetime.time(14, 15), datetime.time(15, 5)),
+        (datetime.time(15, 5), datetime.time(15, 35))
+    ]
+
+
 class Event(object):
     def __init__(self, name, start, end, allDay=False):
         self.name = name
@@ -142,11 +168,12 @@ class RotationDay(object):
             e = date.replace(hour=15, minute=35)
         return s, e
 
-    def _getTime(self, b):
-        if self.isWed:
-            return self._getWedTime(b)
-        else:
-            return self._getDayTime(b)
+    def _getTime(self, block):
+        times = TIMES if not self.isWed else WED_TIMES
+        start, end = times[block]
+        start = datetime.datetime.combine(self.date, start)
+        end = datetime.datetime.combine(self.date, end)
+        return start, end
 
     @property
     def title1(self):
@@ -218,17 +245,22 @@ class RotationDay(object):
             blocks.append(self.title2)
         if not self.open:
             return blocks
-        blocks.append(self.block1)
-        blocks.append(self.block2)
-        blocks.append(self.block3)
-        blocks.append(self.block4)
-        blocks.append(self.block5)
-        blocks.append(self.block6)
-        blocks.append(self.block7)
-        blocks.append(self.block8)
-        blocks.append(self.block9)
-        if self.block10:
-            blocks.append(self.block10)
+        for block_num in range(10):
+            if self.isWed and block == 9:
+                break
+            block = Event(self.blocks[block_num], *self._getTime(block_num))
+            blocks.append(block)
+        # blocks.append(self.block1)
+        # blocks.append(self.block2)
+        # blocks.append(self.block3)
+        # blocks.append(self.block4)
+        # blocks.append(self.block5)
+        # blocks.append(self.block6)
+        # blocks.append(self.block7)
+        # blocks.append(self.block8)
+        # blocks.append(self.block9)
+        # if self.block10:
+        #     blocks.append(self.block10)
         return blocks
 
 
