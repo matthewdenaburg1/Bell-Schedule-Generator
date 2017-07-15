@@ -71,7 +71,7 @@ class Event(object):
 
 
 class RotationDay(object):
-    def __init__(self, date, number, isOpen, desc1="", desc2="", msActivity="", usActivity=""):
+    def __init__(self, date, number, isOpen, desc1="", desc2="", msAct="", usAct=""):
         self.date = date
         self.dayNumber = number
         self.isWed = date.weekday() == 2
@@ -91,8 +91,8 @@ class RotationDay(object):
 
         if not self.isWed:
             blocks.append("MS Electives/US Academic Help")
-        blocks.insert(4, "US Lunch" + ("/MS " + msActivity if msActivity else ""))
-        blocks.insert(4, "MS Lunch" + ("/US " + usActivity if usActivity else ""))
+        blocks.insert(4, "US Lunch" + ("/MS " + msAct if msAct else ""))
+        blocks.insert(4, "MS Lunch" + ("/US " + usAct if usAct else ""))
         blocks.insert(2, "Break")
 
         self.blocks = blocks
@@ -102,71 +102,6 @@ class RotationDay(object):
 
     def __repr__(self):
         return str(self)
-
-    def _getWedTime(self, b):
-        date = datetime.datetime(self.date.year, self.date.month, self.date.day)
-        if b == 1:  # start time for block 1
-            s = date.replace(hour=8, minute=0)
-            e = date.replace(hour=8, minute=45)
-        elif b == 2:
-            s = date.replace(hour=8, minute=50)
-            e = date.replace(hour=10, minute=0)
-        elif b == 3:
-            s = date.replace(hour=10, minute=0)
-            e = date.replace(hour=10, minute=15)
-        elif b == 4:
-            s = date.replace(hour=10, minute=15)
-            e = date.replace(hour=11, minute=0)
-        elif b == 5:
-            s = date.replace(hour=11, minute=5)
-            e = date.replace(hour=11, minute=45)
-        elif b == 6:
-            s = date.replace(hour=11, minute=50)
-            e = date.replace(hour=12, minute=20)
-        elif b == 7:
-            s = date.replace(hour=12, minute=20)
-            e = date.replace(hour=13, minute=0)
-        elif b == 8:
-            s = date.replace(hour=13, minute=0)
-            e = date.replace(hour=13, minute=45)
-        elif b == 9:
-            s = date.replace(hour=13, minute=50)
-            e = date.replace(hour=14, minute=35)
-        return s, e
-
-    def _getDayTime(self, b):
-        date = datetime.datetime(self.date.year, self.date.month, self.date.day)
-        if b == 1:
-            s = date.replace(hour=8)
-            e = date.replace(hour=8, minute=50)
-        elif b == 2:
-            s = date.replace(hour=8, minute=55)
-            e = date.replace(hour=10, minute=5)
-        elif b == 3:
-            s = date.replace(hour=10, minute=5)
-            e = date.replace(hour=10, minute=20)
-        elif b == 4:
-            s = date.replace(hour=10, minute=20)
-            e = date.replace(hour=11, minute=10)
-        elif b == 5:
-            s = date.replace(hour=11, minute=15)
-            e = date.replace(hour=11, minute=55)
-        elif b == 6:
-            s = date.replace(hour=12)
-            e = date.replace(hour=12, minute=40)
-        elif b == 7:
-            s = date.replace(hour=12, minute=40)
-            e = date.replace(hour=13, minute=20)
-        elif b == 8:
-            s = date.replace(hour=13, minute=20)
-            e = date.replace(hour=14, minute=10)
-        elif b == 9:
-            s = date.replace(hour=14, minute=15)
-            e = date.replace(hour=15, minute=5)
-        elif b == 10:
-            s = date.replace(hour=15, minute=5)
-            e = date.replace(hour=15, minute=35)
-        return s, e
 
     def _getTime(self, block):
         times = TIMES if not self.isWed else WED_TIMES
@@ -186,58 +121,6 @@ class RotationDay(object):
         else:
             return None
 
-    @property
-    def block1(self):
-        start, end = self._getTime(1)
-        return Event(self.blocks[0], start, end)
-
-    @property
-    def block2(self):
-        start, end = self._getTime(2)
-        return Event(self.blocks[1], start, end)
-
-    @property
-    def block3(self):
-        start, end = self._getTime(3)
-        return Event(self.blocks[2], start, end)
-
-    @property
-    def block4(self):
-        start, end = self._getTime(4)
-        return Event(self.blocks[3], start, end)
-
-    @property
-    def block5(self):
-        start, end = self._getTime(5)
-        return Event(self.blocks[4], start, end)
-
-    @property
-    def block6(self):
-        start, end = self._getTime(6)
-        return Event(self.blocks[5], start, end)
-
-    @property
-    def block7(self):
-        start, end = self._getTime(7)
-        return Event(self.blocks[6], start, end)
-
-    @property
-    def block8(self):
-        start, end = self._getTime(8)
-        return Event(self.blocks[7], start, end)
-
-    @property
-    def block9(self):
-        start, end = self._getTime(9)
-        return Event(self.blocks[8], start, end)
-
-    @property
-    def block10(self):
-        if self.isWed:
-            return None
-        start, end = self._getTime(10)
-        return Event(self.blocks[9], start, end)
-
     def getBlocks(self):
         blocks = list()
         blocks.append(self.title1)
@@ -246,21 +129,10 @@ class RotationDay(object):
         if not self.open:
             return blocks
         for block_num in range(10):
-            if self.isWed and block == 9:
+            if self.isWed and block_num == 9:
                 break
             block = Event(self.blocks[block_num], *self._getTime(block_num))
             blocks.append(block)
-        # blocks.append(self.block1)
-        # blocks.append(self.block2)
-        # blocks.append(self.block3)
-        # blocks.append(self.block4)
-        # blocks.append(self.block5)
-        # blocks.append(self.block6)
-        # blocks.append(self.block7)
-        # blocks.append(self.block8)
-        # blocks.append(self.block9)
-        # if self.block10:
-        #     blocks.append(self.block10)
         return blocks
 
 
