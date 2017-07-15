@@ -8,7 +8,7 @@ BLOCKS = ["A", "G", "F", "E", "D", "C", "B"]
 BLOCKS = list(map(lambda a: a + " Block", BLOCKS))
 
 
-WED_TIMES = [
+WED_TIMES = [  # block times (start, end) for Wednesday
         (datetime.time(8, 0), datetime.time(8, 45)),
         (datetime.time(8, 50), datetime.time(10)),
         (datetime.time(10, 0), datetime.time(10, 15)),
@@ -17,10 +17,9 @@ WED_TIMES = [
         (datetime.time(11, 50), datetime.time(12, 20)),
         (datetime.time(12, 20), datetime.time(13)),
         (datetime.time(13), datetime.time(13, 45)),
-        (datetime.time(13, 50), datetime.time(14, 35)),
-        (None, None)
+        (datetime.time(13, 50), datetime.time(14, 35))
     ]
-TIMES = [
+TIMES = [  # block times (start, end) for days that aren't Wednesday
         (datetime.time(8), datetime.time(8, 50)),
         (datetime.time(8, 55), datetime.time(10, 5)),
         (datetime.time(10, 5), datetime.time(10, 20)),
