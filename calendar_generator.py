@@ -34,7 +34,18 @@ TIMES = [  # block times (start, end) for days that aren't Wednesday
 
 
 class Event(object):
+    """A helper class for exporting calendar events to a CSV file."""
+
     def __init__(self, name, start, end, allDay=False):
+        """
+        :param name: the name of the event
+        :type name: str
+        :param start: the start date and time of the event
+        :type start: datetime.datetime
+        :param end: the end date and time of the event
+        :type end: datetime.datetime
+        :param allDay: determines if this is an all day event (default: False)
+        """
         self.name = name
         self.start = start
         self.end = end
@@ -59,6 +70,11 @@ class Event(object):
 
     @property
     def csv(self):
+        """creates a dict for csv.DictWriter
+
+        :returns: a dict for a calendar event
+        :rtype: dict
+        """
         ret = dict()
         ret["Subject"] = self.name
         ret["Start Date"] = str(self.start.date())
@@ -70,7 +86,17 @@ class Event(object):
 
 
 class RotationDay(object):
+    """creates a day of the block schedule calendar."""
+
     def __init__(self, date, number, isOpen, desc1="", desc2="", msAct="", usAct=""):
+        """
+        :param date: the date of the rotation
+        :param number: day number
+        :param isOpen: true if school is open, or if there is a special event,
+        like Community Day
+        :param desc1: a description of the day.
+        :param desc2: a second description of the day.
+        """
         self.date = date
         self.dayNumber = number
         self.isWed = date.weekday() == 2
@@ -155,7 +181,7 @@ if __name__ == "__main__":
                     number = int(row[4])
                 except:
                     continue
-                
+
                 day = RotationDay(date, number, isOpen, *(row[5:]))
                 for block in day.getBlocks():
                     writer.writerow(block.csv)
