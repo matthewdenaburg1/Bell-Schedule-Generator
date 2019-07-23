@@ -114,20 +114,23 @@ class RotationDay:
 
     @property
     def title1(self) -> Event:
+        """The first title"""
         return Event(self.primary_description, self.date, self.date, True)
 
     @property
     def title2(self) -> Event:
+        """ the second title"""
         if self.secondary_description:
             return Event(self.secondary_description, self.date, self.date, False)
         return None
 
     def get_blocks(self) -> List[Event]:
+        """get blocks"""
         blocks = list()
         blocks.append(self.title1)
         if self.title2:
             blocks.append(self.title2)
-        if not self.open:
+        if not self.is_open:
             return blocks
         for block_num in range(10):
             if self.is_wednesday and block_num == 9:
@@ -137,7 +140,7 @@ class RotationDay:
         return blocks
 
 
-def getBlockTimesForDate(date: datetime.date, block: int) -> Tuple[datetime.time]:
+def get_block_times_for_date(date: datetime.date, block: int) -> Tuple[datetime.time]:
     """get the start and end time of a block on a date
 
     :param date: the date of the event
@@ -145,7 +148,7 @@ def getBlockTimesForDate(date: datetime.date, block: int) -> Tuple[datetime.time
 
     :return: Length two, contains datetime.time objects
     """
-    WED_TIMES = [  # block times (start, end) for Wednesday
+    wed_times = [  # block times (start, end) for Wednesday
         (datetime.time(8, 0), datetime.time(8, 45)),
         (datetime.time(8, 50), datetime.time(10)),
         (datetime.time(10, 0), datetime.time(10, 15)),
@@ -157,7 +160,7 @@ def getBlockTimesForDate(date: datetime.date, block: int) -> Tuple[datetime.time
         (datetime.time(13, 50), datetime.time(14, 35)),
         (None, None)
     ]
-    TIMES = [  # block times (start, end) for days that aren't Wednesday
+    times = [  # block times (start, end) for days that aren't Wednesday
         (datetime.time(8), datetime.time(8, 50)),
         (datetime.time(8, 55), datetime.time(10, 5)),
         (datetime.time(10, 5), datetime.time(10, 20)),
@@ -169,15 +172,17 @@ def getBlockTimesForDate(date: datetime.date, block: int) -> Tuple[datetime.time
         (datetime.time(14, 15), datetime.time(15, 5)),
         (datetime.time(15, 5), datetime.time(15, 35))
     ]
-    return [WED_TIMES if date.weekday() == 2 else TIMES][block]
+    return [wed_times if date.weekday() == 2 else times][block]
 
 
 def block_rotation(day_number):
+    """rotation"""
     letters = ["A", "B", "C", "D", "E", "F", "G"]
     return letters[7 - day_number + 1:] + letters[:7 - day_number]
 
 
 def main():
+    """Main func"""
     with open("2017-2018_MS_US_Cal-input.csv", "r", newline="") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)  # skip header row
@@ -195,7 +200,7 @@ def main():
                 is_open = row[3] == "TRUE"
                 try:
                     number = int(row[4])
-                except IndexError as e:
+                except IndexError as _:
                     continue
 
                 day = RotationDay(date, number, is_open, *(row[5:]))
