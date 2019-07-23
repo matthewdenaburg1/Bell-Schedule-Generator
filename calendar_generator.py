@@ -183,10 +183,10 @@ def block_rotation(day_number):
 
 def main():
     """Main func"""
-    with open("2017-2018_MS_US_Cal-input.csv", "r", newline="") as csvfile:
+    with open("./data/2019-2020/2019-2020-input-test.csv", "r", newline="") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)  # skip header row
-        with open("2017-2018_calendar.csv", "w", newline="") as csvout:
+        with open("./data/2019-2020/2019-2020-out.csv", "w", newline="") as csvout:
             field_names = ["Subject", "Start Date", "Start Time", "End Date",
                            "End Time", "All Day Event"]
 
@@ -194,7 +194,7 @@ def main():
             writer.writeheader()
 
             for row in reader:
-                date = datetime.datetime.strptime(row[0], "%m-%d-%Y")
+                date = datetime.datetime.strptime(row[0], "%m/%d/%Y")
                 if date.weekday() >= 5:
                     continue
                 is_open = row[3] == "TRUE"
