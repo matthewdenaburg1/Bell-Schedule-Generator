@@ -5,6 +5,35 @@ from typing import Dict, Tuple, List
 import datetime
 import csv
 
+BLOCKS = ["A", "G", "F", "E", "D", "C", "B"]
+BLOCKS = list(map(lambda a: a + " Block", BLOCKS))
+
+WED_TIMES = [  # block times (start, end) for Wednesday
+    (datetime.time(7, 55), datetime.time(8, 10)),    # MS Advisory / US morning help
+    (datetime.time(8, 10), datetime.time(8, 55)),    # 1st block
+    (datetime.time(9), datetime.time(10, 10)),       # 2nd block
+    (datetime.time(10, 10), datetime.time(10, 25)),  # break
+    (datetime.time(10, 25), datetime.time(11, 10)),  # 3rd block
+    (datetime.time(11, 15), datetime.time(11, 55)),  # 4th block
+    (datetime.time(12), datetime.time(12, 30)),      # MS Lunch / US Academic Help
+    (datetime.time(12, 30), datetime.time(13)),      # US Lunch / MS MFW
+    (datetime.time(13, 5), datetime.time(13, 50)),   # 5th block
+    (datetime.time(13, 55), datetime.time(14, 40))   # 6th block
+]
+TIMES = [  # block times (start, end) for days that are not Wednesday
+    (datetime.time(7, 55), datetime.time(8, 10)),    # MS Advisory / US morning help
+    (datetime.time(8, 10), datetime.time(9)),        # 1st block
+    (datetime.time(9, 5), datetime.time(10, 15)),    # 2nd block
+    (datetime.time(10, 15), datetime.time(10, 30)),  # break
+    (datetime.time(10, 30), datetime.time(11, 20)),  # 3rd block
+    (datetime.time(11, 25), datetime.time(12, 5)),   # 4th block
+    (datetime.time(12, 10), datetime.time(12, 50)),  # MS Lunch
+    (datetime.time(12, 50), datetime.time(13, 25)),  # US Lunch
+    (datetime.time(13, 25), datetime.time(14, 15)),  # 5th block
+    (datetime.time(14, 20), datetime.time(15, 10)),  # 6th block
+    (datetime.time(15, 10), datetime.time(15, 40)),  # MS Sports / US Academic Help
+]
+
 
 class Event:
     """A helper class for exporting calendar events to a CSV file."""
@@ -59,8 +88,7 @@ class RotationDay:
     """Creates a day of the block schedule calendar."""
 
     def __init__(self, date: datetime.date, day_number: int, is_open: bool,
-                 primary_description: str, secondary_description: str = "",
-                 ms_activity: str = "", us_activity: str = ""):
+                 primary_description: str, secondary_description: str = ""):
         """
         :param date: the date of the rotation
         :param day_number: day number
@@ -76,7 +104,7 @@ class RotationDay:
         self.is_open = is_open
 
         if self.is_open:
-            if description_line_one:
+            if primary_description:
                 self.primary_description = primary_description
             else:
                 self.primary_description = "Day " + str(self.day_number)
@@ -91,11 +119,15 @@ class RotationDay:
         if len(blocks) == 7:
             blocks = blocks[:-1]
 
+        blocks.insert(0, "MS Advisory | US Morning Help")
+
         if not self.is_wednesday:
-            blocks.append("MS Electives/US Academic Help")
-        blocks.insert(4, "US Lunch" + ("/MS " + ms_activity if ms_activity else ""))
-        blocks.insert(4, "MS Lunch" + ("/US " + us_activity if us_activity else ""))
-        blocks.insert(2, "Break")
+            blocks.append("MS Electives | US Academic Help")
+        ms_activities = ["Advisory", "Tutorial", "MFW", "Tutorial", "Committees"]
+        us_activities = ["Advisory", "MFW", "Academic Help", "Activity Period", "MFW"]
+        blocks.insert(5, "US Lunch | MS " + ms_activities[self.date.weekday()])
+        blocks.insert(5, "MS Lunch | US " + us_activities[self.date.weekday()])
+        blocks.insert(3, "Break")
 
         self.blocks = blocks
 
@@ -119,7 +151,7 @@ class RotationDay:
 
     @property
     def title2(self) -> Event:
-        """ the second title"""
+        """The second title"""
         if self.secondary_description:
             return Event(self.secondary_description, self.date, self.date, False)
         return None
@@ -132,53 +164,12 @@ class RotationDay:
             blocks.append(self.title2)
         if not self.is_open:
             return blocks
-        for block_num in range(10):
-            if self.is_wednesday and block_num == 9:
+        for block_num in range(len(self.blocks)):
+            if self.is_wednesday and block_num == len(self.blocks) - 1:
                 break
             block = Event(self.blocks[block_num], *self._get_time(block_num))
             blocks.append(block)
         return blocks
-
-
-def get_block_times_for_date(date: datetime.date, block: int) -> Tuple[datetime.time]:
-    """get the start and end time of a block on a date
-
-    :param date: the date of the event
-    :param block: the block number
-
-    :return: Length two, contains datetime.time objects
-    """
-    wed_times = [  # block times (start, end) for Wednesday
-        (datetime.time(8, 0), datetime.time(8, 45)),
-        (datetime.time(8, 50), datetime.time(10)),
-        (datetime.time(10, 0), datetime.time(10, 15)),
-        (datetime.time(10, 15), datetime.time(11)),
-        (datetime.time(11, 5), datetime.time(11, 45)),
-        (datetime.time(11, 50), datetime.time(12, 20)),
-        (datetime.time(12, 20), datetime.time(13)),
-        (datetime.time(13), datetime.time(13, 45)),
-        (datetime.time(13, 50), datetime.time(14, 35)),
-        (None, None)
-    ]
-    times = [  # block times (start, end) for days that aren't Wednesday
-        (datetime.time(8), datetime.time(8, 50)),
-        (datetime.time(8, 55), datetime.time(10, 5)),
-        (datetime.time(10, 5), datetime.time(10, 20)),
-        (datetime.time(10, 20), datetime.time(11, 10)),
-        (datetime.time(11, 15), datetime.time(11, 55)),
-        (datetime.time(12), datetime.time(12, 40)),
-        (datetime.time(12, 40), datetime.time(13, 20)),
-        (datetime.time(13, 20), datetime.time(14, 10)),
-        (datetime.time(14, 15), datetime.time(15, 5)),
-        (datetime.time(15, 5), datetime.time(15, 35))
-    ]
-    return [wed_times if date.weekday() == 2 else times][block]
-
-
-def block_rotation(day_number):
-    """rotation"""
-    letters = ["A", "B", "C", "D", "E", "F", "G"]
-    return letters[7 - day_number + 1:] + letters[:7 - day_number]
 
 
 def main():
@@ -187,8 +178,8 @@ def main():
         reader = csv.reader(csvfile)
         next(reader)  # skip header row
         with open("./data/2019-2020/2019-2020-out.csv", "w", newline="") as csvout:
-            field_names = ["Subject", "Start Date", "Start Time", "End Date",
-                           "End Time", "All Day Event"]
+            field_names = ["Subject", "Start Date", "Start Time", "End Date", "End Time",
+                           "All Day Event"]
 
             writer = csv.DictWriter(csvout, field_names, dialect="excel")
             writer.writeheader()
@@ -197,18 +188,18 @@ def main():
                 date = datetime.datetime.strptime(row[0], "%m/%d/%Y")
                 if date.weekday() >= 5:
                     continue
-                is_open = row[3] == "TRUE"
+                is_open = row[1] == "TRUE"
+                is_special = row[2] == "TRUE"
                 try:
-                    number = int(row[4])
+                    number = int(row[3])
                 except IndexError as _:
                     continue
 
-                day = RotationDay(date, number, is_open, *(row[5:]))
+                is_open_val = is_open and not is_special
+                day = RotationDay(date, number, is_open_val, *(row[4:]))
                 for block in day.get_blocks():
                     writer.writerow(block.csv)
 
 
 if __name__ == "__main__":
-    print(str(Event('test', datetime.datetime.today(), datetime.datetime.today())))
-    import sys
-    sys.exit(0)
+    main()
