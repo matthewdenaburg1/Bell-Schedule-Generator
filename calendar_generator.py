@@ -1,6 +1,9 @@
 #!/usr/bin/env python3
+"""
+Creates the bell schedule calendar for SSFS
+"""
 
-from typing import Dict, Tuple, List
+from typing import Dict, List
 
 import datetime
 import csv
@@ -88,7 +91,7 @@ class RotationDay:
     """Creates a day of the block schedule calendar."""
 
     def __init__(self, date: datetime.date, day_number: int, is_open: bool,
-                 primary_description: str, secondary_description: str = ""):
+                 *all_day_events: List[str]):
         """
         :param date: the date of the rotation
         :param day_number: day number
@@ -102,16 +105,10 @@ class RotationDay:
         self.day_number = day_number
         self.is_wednesday = date.weekday() == 2
         self.is_open = is_open
+        self.all_day_events: List[str] = list(all_day_events)
 
         if self.is_open:
-            if primary_description:
-                self.primary_description = primary_description
-            else:
-                self.primary_description = "Day " + str(self.day_number)
-        else:
-            self.primary_description = primary_description
-
-        self.secondary_description = secondary_description
+            self.all_day_events.append("Day " + str(self.day_number))
 
         # put the blocks in the right order
         day = self.day_number - 1
@@ -125,6 +122,7 @@ class RotationDay:
             blocks.append("MS Electives | US Academic Help")
         ms_activities = ["Advisory", "Tutorial", "MFW", "Tutorial", "Committees"]
         us_activities = ["Advisory", "MFW", "Academic Help", "Activity Period", "MFW"]
+        # insert at lunch in reverse order
         blocks.insert(5, "US Lunch | MS " + ms_activities[self.date.weekday()])
         blocks.insert(5, "MS Lunch | US " + us_activities[self.date.weekday()])
         blocks.insert(3, "Break")
@@ -144,28 +142,17 @@ class RotationDay:
         end = datetime.datetime.combine(self.date, end)
         return start, end
 
-    @property
-    def title1(self) -> Event:
-        """The first title"""
-        return Event(self.primary_description, self.date, self.date, True)
-
-    @property
-    def title2(self) -> Event:
-        """The second title"""
-        if self.secondary_description:
-            return Event(self.secondary_description, self.date, self.date, False)
-        return None
-
     def get_blocks(self) -> List[Event]:
         """get blocks"""
         blocks = list()
-        blocks.append(self.title1)
-        if self.title2:
-            blocks.append(self.title2)
+        for all_day_event in self.all_day_events:
+            if all_day_event:
+                event = Event(all_day_event, self.date, self.date, True)
+                blocks.append(event)
         if not self.is_open:
             return blocks
         for block_num in range(len(self.blocks)):
-            if self.is_wednesday and block_num == len(self.blocks) - 1:
+            if self.is_wednesday and block_num == len(self.blocks):
                 break
             block = Event(self.blocks[block_num], *self._get_time(block_num))
             blocks.append(block)
@@ -177,7 +164,7 @@ def main():
     with open("./data/2019-2020/2019-2020-input-test.csv", "r", newline="") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)  # skip header row
-        with open("./data/2019-2020/2019-2020-out.csv", "w", newline="") as csvout:
+        with open("./data/2019-2020/2019-2020-output2.csv", "w", newline="") as csvout:
             field_names = ["Subject", "Start Date", "Start Time", "End Date", "End Time",
                            "All Day Event"]
 
@@ -186,6 +173,7 @@ def main():
 
             for row in reader:
                 date = datetime.datetime.strptime(row[0], "%m/%d/%Y")
+                # no weekends
                 if date.weekday() >= 5:
                     continue
                 is_open = row[1] == "TRUE"
