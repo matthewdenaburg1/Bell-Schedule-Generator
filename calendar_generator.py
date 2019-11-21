@@ -5,29 +5,30 @@ Creates the bell schedule calendar for SSFS
 
 from typing import Dict, List, Tuple
 
+import argparse
 import csv
 import datetime
 
 
-BLOCKS: List[str] = list(map(lambda a: a + " Block",
-                             ["A", "G", "F", "E", "D", "C", "B"]))
+BLOCKS: List[str] = ["A Block", "G Block", "F Block", "E Block", "D Block",
+                     "C Block", "B Block"]
 
 # block times (start, end) for Wednesday
 WED_TIMES: List[Tuple[datetime.time, datetime.time]] = [
-    (datetime.time(7, 55), datetime.time(8, 10)),    # MS Advisory / US morning help
+    (datetime.time(7, 55), datetime.time(8, 10)),    # MS Advisory / US AM help
     (datetime.time(8, 10), datetime.time(8, 55)),    # 1st block
     (datetime.time(9), datetime.time(10, 10)),       # 2nd block
     (datetime.time(10, 10), datetime.time(10, 25)),  # break
     (datetime.time(10, 25), datetime.time(11, 10)),  # 3rd block
     (datetime.time(11, 15), datetime.time(11, 55)),  # 4th block
-    (datetime.time(12), datetime.time(12, 30)),      # MS Lunch / US Academic Help
+    (datetime.time(12), datetime.time(12, 30)),      # MS Lunch / US Acad help
     (datetime.time(12, 30), datetime.time(13)),      # US Lunch / MS MFW
     (datetime.time(13, 5), datetime.time(13, 50)),   # 5th block
     (datetime.time(13, 55), datetime.time(14, 40))   # 6th block
 ]
 # block times (start, end) for days that are not Wednesday
-TIMES: List[Tuple[datetime.time, datetime.time]] = [
-    (datetime.time(7, 55), datetime.time(8, 10)),    # MS Advisory / US morning help
+REG_TIMES: List[Tuple[datetime.time, datetime.time]] = [
+    (datetime.time(7, 55), datetime.time(8, 10)),    # MS Advisory / US AM help
     (datetime.time(8, 10), datetime.time(9)),        # 1st block
     (datetime.time(9, 5), datetime.time(10, 15)),    # 2nd block
     (datetime.time(10, 15), datetime.time(10, 30)),  # break
@@ -37,15 +38,22 @@ TIMES: List[Tuple[datetime.time, datetime.time]] = [
     (datetime.time(12, 50), datetime.time(13, 25)),  # US Lunch
     (datetime.time(13, 25), datetime.time(14, 15)),  # 5th block
     (datetime.time(14, 20), datetime.time(15, 10)),  # 6th block
-    (datetime.time(15, 10), datetime.time(15, 40)),  # MS Sports / US Academic Help
+    (datetime.time(15, 10), datetime.time(15, 40)),  # MS Sports / US Acad help
 ]
 
+# Weekly MS Activities
+MS_ACTIVITIES = ["Advisory", "Tutorial", "MFW", "Tutorial", "Committees"]
+# weekly US Activities
+US_ACTIVITIES = ["Advisory", "MFW", "Academic Help", "Activity Period", "MFW"]
 
 class Event:
     """A helper class for exporting calendar events to a CSV file."""
 
-    def __init__(self, name: str, start: datetime.datetime, end: datetime.datetime,
-                 all_day: bool = False):
+    field_names = ["Subject", "Start Date", "Start Time", "End Date",
+                   "End Time", "All Day Event"]
+
+    def __init__(self, name: str, start: datetime.datetime,
+                 end: datetime.datetime, all_day: bool = False):
         """
         name: the name of the event
         start: the start date/time of the event
@@ -70,7 +78,8 @@ class Event:
             return True
         if not isinstance(other, Event):
             return False
-        if self.name != other.name or self.start != other.start or self.end != other.end:
+        if (self.name != other.name or self.start != other.start or
+                self.end != other.end):
             return False
         return True
 
@@ -98,6 +107,9 @@ class RotationDay:
     previous day's day number.
     """
 
+    __slots__ = ("date", "day_number", "is_wednesday", "is_open",
+                 "all_day_events", "blocks",)
+
     def __init__(self, date: datetime.date, day_number: int, is_open: bool,
                  *all_day_events: List[str]):
         """
@@ -110,9 +122,10 @@ class RotationDay:
                           be listed here. Do not include "Day N"s
         """
 
+        weekday: int = date.weekday()
         self.date: datetime.date = date
         self.day_number: int = day_number
-        self.is_wednesday: bool = date.weekday() == 2
+        self.is_wednesday: bool = weekday == 2
         self.is_open: bool = is_open
         self.all_day_events: List[str] = list(all_day_events)
 
@@ -120,9 +133,9 @@ class RotationDay:
         if self.is_open:
             self.all_day_events.append("Day " + str(self.day_number))
 
-        # put the blocks in the right order
+        # lists are 0-indexed, so decrement the day number
         day = self.day_number - 1
-        # list[n:m:-1] === items from n (inclusive) to m (exclusive) in reverse order (-1)
+        # put the blocks in the right order
         blocks = BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
         if len(blocks) == 7:
             blocks = blocks[:-1]
@@ -130,16 +143,15 @@ class RotationDay:
         # insert at the start
         blocks.insert(0, "MS Advisory | US Morning Help")
 
-        # add at the end if not wednesday (no electives/academic help on wednesdays)
+        # add at the end if not wednesday (no electives/academic help on
+        # Wednesdays)
         if not self.is_wednesday:
             blocks.append("MS Electives | US Academic Help")
-        ms_activities = ["Advisory", "Tutorial", "MFW", "Tutorial", "Committees"]
-        us_activities = ["Advisory", "MFW", "Academic Help", "Activity Period", "MFW"]
 
         # insert at lunch. US Lunch is after MS Lunch, but we'd have to fiddle
         # with the indices if it put MS lunch in first.
-        blocks.insert(5, "US Lunch | MS " + ms_activities[self.date.weekday()])
-        blocks.insert(5, "MS Lunch | US " + us_activities[self.date.weekday()])
+        blocks.insert(5, "US Lunch | MS " + str(MS_ACTIVITIES[weekday]))
+        blocks.insert(5, "MS Lunch | US " + str(US_ACTIVITIES[weekday]))
         blocks.insert(3, "Break")
 
         self.blocks: List[str] = blocks
@@ -148,11 +160,15 @@ class RotationDay:
         return str(self.date) + "(" + str(self.day_number) + ")"
 
     def __repr__(self) -> str:
-        return str(self)
+        string: str = "RotationDay(date={self.date:%Y-%m-%d}, "
+        string += "day_number={self.day_number}, "
+        string += "is_wednesday={self.is_wednesday}, is_open={self.is_open}, "
+        string += "all_day_events:{self.all_day_events})"
+        return string.format(self=self)
 
     def get_event_times(self, block_num: int) -> Tuple[datetime.datetime, datetime.datetime]:
         """Get the start and end times associated with this block"""
-        times = TIMES if not self.is_wednesday else WED_TIMES
+        times = REG_TIMES if not self.is_wednesday else WED_TIMES
         start, end = times[block_num]
         start = datetime.datetime.combine(self.date, start)
         end = datetime.datetime.combine(self.date, end)
@@ -161,15 +177,18 @@ class RotationDay:
     def create_blocks(self) -> List[Event]:
         """Creates the events"""
         blocks = list()
+
         # create events for the all day events
         for all_day_event in self.all_day_events:
             # make sure the event is not None or the empty string
             if all_day_event:
                 event = Event(all_day_event, self.date, self.date, True)
                 blocks.append(event)
+
         # if school is not open, then there's no more events. We are done.
         if not self.is_open:
             return blocks
+
         # iterate through the events (the ones that are not all day)
         for num in range(len(self.blocks)):
             # if the date is wednesday, we do not want to add academic help
@@ -179,19 +198,30 @@ class RotationDay:
             block = Event(self.blocks[num], *self.get_event_times(num))
             # add the new event to the list
             blocks.append(block)
+
         return blocks
+
+
+def _arg_parser() -> argparse.ArgumentParser:
+    """argument parser"""
+    description = """Create a CSV file of events for the Middle School and
+    Upper School's shared bell schedule, based on the standard rotation.
+    """
+    parser = argparse.ArgumentParser(description=description)
+    parser.add_argument("input_file", help="See README for instructions")
+    parser.add_argument("output_file", help="See README for instructions")
+    return parser
 
 
 def main():
     """Main func"""
-    with open("./data/2019-2020/2019-2020-input-test.csv", "r", newline="") as csvfile:
+    args = _arg_parser().parse_args()
+
+    with open(args.input_file, "r", newline="") as csvfile:
         reader = csv.reader(csvfile)
         next(reader)  # skip header row
-        with open("./data/2019-2020/2019-2020-output2.csv", "w", newline="") as csvout:
-            field_names = ["Subject", "Start Date", "Start Time", "End Date",
-                           "End Time", "All Day Event"]
-
-            writer = csv.DictWriter(csvout, field_names, dialect="excel")
+        with open(args.output_file, "w", newline="") as csvout:
+            writer = csv.DictWriter(csvout, Event.field_names, dialect="excel")
             writer.writeheader()
 
             for row in reader:
