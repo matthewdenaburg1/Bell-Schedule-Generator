@@ -10,6 +10,7 @@ import csv
 import datetime
 
 
+# academic blocks - please leave in this order
 BLOCKS: List[str] = ["A Block", "G Block", "F Block", "E Block", "D Block",
                      "C Block", "B Block"]
 
@@ -41,9 +42,9 @@ REG_TIMES: List[Tuple[datetime.time, datetime.time]] = [
     (datetime.time(15, 10), datetime.time(15, 40)),  # MS Sports / US Acad help
 ]
 
-# Weekly MS Activities
+# Weekly MS Common Time activities
 MS_ACTIVITIES = ["Advisory", "Tutorial", "MFW", "Tutorial", "Committees"]
-# weekly US Activities
+# weekly US Common Time activities
 US_ACTIVITIES = ["Advisory", "MFW", "Academic Help", "Activity Period", "MFW"]
 
 class Event:
@@ -66,10 +67,21 @@ class Event:
         self.all_day: bool = all_day
 
     def __str__(self) -> str:
-        return "{self.name}: {self.start} - {self.end}".format(self=self)
+        string: str = "{self.name}: {self.start:%Y-%m-%d"
+        string += " @%I:%M %p" if not self.all_day else ""
+        string += "} - {self.end:%Y-%m-%d"
+        string += " @%I:%M %p" if not self.all_day else ""
+        string += "}"
+        return string.format(self=self)
 
     def __repr__(self) -> str:
-        return str(self)
+        string: str = "Event(name='{self.name}', "
+        string += "start={self.start:'%Y-%m-%d"
+        string += " @%H:%M" if not self.all_day else ""
+        string += "'}, end={self.end:'%Y-%m-%d"
+        string += " @%H:%M" if not self.all_day else ""
+        string += "'}, all_day={self.all_day})"
+        return string.format(self=self)
 
     def __eq__(self, other: "Event") -> bool:
         if other is None:
@@ -122,39 +134,34 @@ class RotationDay:
                           be listed here. Do not include "Day N"s
         """
 
-        weekday: int = date.weekday()
         self.date: datetime.date = date
         self.day_number: int = day_number
-        self.is_wednesday: bool = weekday == 2
         self.is_open: bool = is_open
         self.all_day_events: List[str] = list(all_day_events)
+
+        weekday: int = self.date.weekday()
+        self.is_wednesday: bool = weekday == 2
 
         # if we're open, add the "Day *N*" event
         if self.is_open:
             self.all_day_events.append("Day " + str(self.day_number))
 
-        # lists are 0-indexed, so decrement the day number
-        day = self.day_number - 1
-        # put the blocks in the right order
-        blocks = BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
-        if len(blocks) == 7:
-            blocks = blocks[:-1]
+        # get the rotation
+        self.blocks: List[str] = self._get_block_rotation()
 
         # insert at the start
-        blocks.insert(0, "MS Advisory | US Morning Help")
+        self.blocks.insert(0, "MS Advisory | US Morning Help")
 
         # add at the end if not wednesday (no electives/academic help on
         # Wednesdays)
         if not self.is_wednesday:
-            blocks.append("MS Electives | US Academic Help")
+            self.blocks.append("MS Electives | US Academic Help")
 
         # insert at lunch. US Lunch is after MS Lunch, but we'd have to fiddle
-        # with the indices if it put MS lunch in first.
-        blocks.insert(5, "US Lunch | MS " + str(MS_ACTIVITIES[weekday]))
-        blocks.insert(5, "MS Lunch | US " + str(US_ACTIVITIES[weekday]))
-        blocks.insert(3, "Break")
-
-        self.blocks: List[str] = blocks
+        # with the indices if we put MS lunch in first.
+        self.blocks.insert(5, "US Lunch | MS " + str(MS_ACTIVITIES[weekday]))
+        self.blocks.insert(5, "MS Lunch | US " + str(US_ACTIVITIES[weekday]))
+        self.blocks.insert(3, "Break")
 
     def __str__(self) -> str:
         return str(self.date) + "(" + str(self.day_number) + ")"
@@ -166,8 +173,35 @@ class RotationDay:
         string += "all_day_events:{self.all_day_events})"
         return string.format(self=self)
 
+    def _get_block_rotation(self) -> List[str]:
+        """Fill in the rotation schedule
+
+        >>> # Day 1: drop G block
+        >>> day = 0
+        >>> blocks[day::-1]
+        ['A Block']
+        >>> blocks[-1:day + 1:-1]
+        ['B Block', 'C Block', 'D Block', 'E Block', 'F Block']
+        >>> blocks[day::-1] + blocks[-1:day + 1:-1]
+        ['A Block', 'B Block', 'C Block', 'D Block', 'E Block', 'F Block']
+
+        >>> # Day 2: drop F block
+        >>> day = 1
+        >>> blocks[day::-1]
+        ['G Block', 'A Block']
+        >>> blocks[-1:day + 1:-1]
+        ['B Block', 'C Block', 'D Block', 'E Block']
+        >>> blocks[day::-1] + blocks[-1:day + 1:-1]
+        ['G Block', 'A Block', 'B Block', 'C Block', 'D Block', 'E Block']
+        """
+
+        # lists are 0-indexed, so decrement the day number
+        day = self.day_number - 1
+        # put the blocks in the right order (see docstring)
+        return BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
+
     def get_event_times(self, block_num: int) -> Tuple[datetime.datetime, datetime.datetime]:
-        """Get the start and end times associated with this block"""
+        """Get the start and end times associated with this block_num"""
         times = REG_TIMES if not self.is_wednesday else WED_TIMES
         start, end = times[block_num]
         start = datetime.datetime.combine(self.date, start)
