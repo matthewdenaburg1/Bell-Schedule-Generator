@@ -43,9 +43,11 @@ REG_TIMES: List[Tuple[datetime.time, datetime.time]] = [
 ]
 
 # Weekly MS Common Time activities
-MS_ACTIVITIES = ["Advisory", "Tutorial", "MFW", "Tutorial", "Committees"]
+MS_ACTIVITIES: List[str] = ["Advisory", "Tutorial", "MFW", "Tutorial",
+                            "Committees"]
 # weekly US Common Time activities
-US_ACTIVITIES = ["Advisory", "MFW", "Academic Help", "Activity Period", "MFW"]
+US_ACTIVITIES: List[str] = ["Advisory", "MFW", "Academic Help",
+                            "Activity Period", "MFW"]
 
 class Event:
     """A helper class for exporting calendar events to a CSV file."""
@@ -152,13 +154,13 @@ class RotationDay:
         # insert at the start
         self.blocks.insert(0, "MS Advisory | US Morning Help")
 
-        # add at the end if not wednesday (no electives/academic help on
+        # add at the end if not Wednesday (no electives/academic help on
         # Wednesdays)
         if not self.is_wednesday:
             self.blocks.append("MS Electives | US Academic Help")
 
-        # insert at lunch. US Lunch is after MS Lunch, but we'd have to fiddle
-        # with the indices if we put MS lunch in first.
+        # Insert at lunch. US Lunch is after MS Lunch, but we'd have to fiddle
+        # with the indices if we put MS Lunch in first.
         self.blocks.insert(5, "US Lunch | MS " + str(MS_ACTIVITIES[weekday]))
         self.blocks.insert(5, "MS Lunch | US " + str(US_ACTIVITIES[weekday]))
         self.blocks.insert(3, "Break")
@@ -202,8 +204,11 @@ class RotationDay:
 
     def get_event_times(self, block_num: int) -> Tuple[datetime.datetime, datetime.datetime]:
         """Get the start and end times associated with this block_num"""
+        # use the correct times depending on if it's wednesday or not
         times = REG_TIMES if not self.is_wednesday else WED_TIMES
+        # get the actual values
         start, end = times[block_num]
+        # combine date and time into datetime
         start = datetime.datetime.combine(self.date, start)
         end = datetime.datetime.combine(self.date, end)
         return start, end
