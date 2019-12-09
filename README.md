@@ -27,12 +27,17 @@ Use this Excel formula to automatically fill in the `Day Number` field:
 ```
 =IF($D3, $E2, IF($E2 = 7, 1, $E2 + 1))
 ```
+
+![Example input data file][screenshot01]
+
+
 ## Output File
 
-The output file should be uploaded to a test calendar for validation before being uploaded to the official bell schedule calendar
+Once you've run the script, the output file should be uploaded to a test calendar for validation before being uploaded to the official bell schedule calendar
 
 
 
 
 
 [xlsx_template]: data/templates/data-template.xlsx
+[screenshot01]: https://bitbucket.org/ssfs_tech/bell-schedule/raw/e5e299404d910abe1dbb58d779ed5c8c3581bdd0/assets/2019-12-09_1340.png
