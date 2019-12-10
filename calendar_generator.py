@@ -176,28 +176,38 @@ class RotationDay:
         return string.format(self=self)
 
     def _get_block_rotation(self) -> List[str]:
-        """Fill in the rotation schedule
+        """Get the block rotation using day_number.
 
+        A Block is the first block of Day 1. G Block is the first of Day 2,
+        etc. This is why BLOCKS is in the order it's in.
+        >>> # all blocks
+        >>> BLOCKS
+        ['A Block', 'G Block', 'F Block', 'E Block', 'D Block', 'C Block', 'B Block']
+
+        The example below gives the rotation for Day 1, dropping G Block. See
+        the following article for an explanation of the slice notation:
+        https://stackoverflow.com/a/509295/664950
         >>> # Day 1: drop G block
         >>> day = 0
-        >>> blocks[day::-1]
+        >>> BLOCKS[day::-1]
         ['A Block']
-        >>> blocks[-1:day + 1:-1]
+        >>> BLOCKS[-1:day + 1:-1]
         ['B Block', 'C Block', 'D Block', 'E Block', 'F Block']
-        >>> blocks[day::-1] + blocks[-1:day + 1:-1]
+        >>> BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
         ['A Block', 'B Block', 'C Block', 'D Block', 'E Block', 'F Block']
 
+        This example gives the rotation for Day 2, dropping F Block.
         >>> # Day 2: drop F block
         >>> day = 1
-        >>> blocks[day::-1]
+        >>> BLOCKS[day::-1]
         ['G Block', 'A Block']
-        >>> blocks[-1:day + 1:-1]
+        >>> BLOCKS[-1:day + 1:-1]
         ['B Block', 'C Block', 'D Block', 'E Block']
-        >>> blocks[day::-1] + blocks[-1:day + 1:-1]
+        >>> BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
         ['G Block', 'A Block', 'B Block', 'C Block', 'D Block', 'E Block']
         """
 
-        # lists are 0-indexed, so decrement the day number
+        # lists are 0-indexed, so decrease the day number by one
         day = self.day_number - 1
         # put the blocks in the right order (see docstring)
         return BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
@@ -242,10 +252,12 @@ class RotationDay:
 
 
 def _arg_parser() -> argparse.ArgumentParser:
-    """argument parser"""
+    """Argument parser."""
+
     description = """Create a CSV file of events for the Middle School and
     Upper School's shared bell schedule, based on the standard rotation.
     """
+
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("input_file", help="See README for instructions")
     parser.add_argument("output_file", help="See README for instructions")
@@ -254,6 +266,7 @@ def _arg_parser() -> argparse.ArgumentParser:
 
 def main():
     """Main func"""
+
     args = _arg_parser().parse_args()
 
     with open(args.input_file, "r", newline="") as csvfile:
