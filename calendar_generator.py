@@ -50,58 +50,8 @@ MS_ACTIVITIES: List[str] = ["Advisory", "Tutorial", "MFW", "Tutorial",
 US_ACTIVITIES: List[str] = ["Advisory", "MFW", "Academic Help",
                             "Activity Period", "MFW"]
 
-
-class Event:
-    """A helper class for exporting calendar events to a CSV file."""
-
-    field_names = ["Subject", "Start Date", "Start Time", "End Date",
-                   "End Time", "All Day Event"]
-
-    def __init__(self, name: str, start: datetime.datetime,
-                 end: datetime.datetime, all_day: bool = False):
-        """
-        name: the name of the event
-        start: the start date/time of the event
-        end: the end date/time of the event
-        allDay: true if this is an all day event
-        """
-        self.name: str = name
-        self.start: datetime.datetime = start
-        self.end: datetime.datetime = end
-        self.all_day: bool = all_day
-
-    def __str__(self) -> str:
-        string: str = "{self.name}: {self.start:%Y-%m-%d"
-        string += " @%I:%M %p" if not self.all_day else ""
-        string += "} - {self.end:%Y-%m-%d"
-        string += " @%I:%M %p" if not self.all_day else ""
-        string += "}"
-        return string.format(self=self)
-
-    def __repr__(self) -> str:
-        string: str = "Event(name='{self.name}', "
-        string += "start={self.start:'%Y-%m-%d"
-        string += " @%H:%M" if not self.all_day else ""
-        string += "'}, end={self.end:'%Y-%m-%d"
-        string += " @%H:%M" if not self.all_day else ""
-        string += "'}, all_day={self.all_day})"
-        return string.format(self=self)
-
-    def to_csv(self) -> Dict[str, str]:
-        """
-        Creates a dict for csv.DictWriter
-
-        return: a dict containing keys for a calendar event
-        """
-        ret = dict()
-        ret["Subject"] = self.name
-        ret["Start Date"] = str(self.start.date())
-        ret["Start Time"] = str(self.start.time())
-        ret["End Date"] = str(self.end.date())
-        ret["End Time"] = str(self.end.time())
-        ret["All Day Event"] = self.all_day
-        return ret
-
+FIELD_NAMES: List[str] = ["Subject", "Start Date", "Start Time", "End Date",
+                          "End Time", "All Day Event"]
 
 class RotationDay:
     """
@@ -223,7 +173,7 @@ class RotationDay:
         end = datetime.datetime.combine(self.date, end)
         return start, end
 
-    def create_blocks(self) -> List[Event]:
+    def create_blocks(self) -> List[Dict[str, str]]:
         """Creates the events"""
         blocks = list()
 
@@ -231,7 +181,8 @@ class RotationDay:
         for all_day_event in self.all_day_events:
             # make sure the event is not None or the empty string
             if all_day_event:
-                event = Event(all_day_event, self.date, self.date, True)
+                event = event_to_dict(all_day_event, self.date, self.date,
+                                      True)
                 blocks.append(event)
 
         # if school is not open, then there's no more events. We are done.
@@ -244,18 +195,24 @@ class RotationDay:
             if self.is_wednesday and num == len(self.blocks):
                 break
             # create the event (block name, and expand `get_event_times`)
-            try:
-                block = Event(self.blocks[num], *self.get_event_times(num))
-            except:
-                print(repr(self))
-                print("len(self.blocks) = " + str(len(self.blocks)))
-                # for i in self.blocks:
-                #     print("  " + str(i))
-                raise
+            block = event_to_dict(self.blocks[num], *self.get_event_times(num))
             # add the new event to the list
             blocks.append(block)
 
         return blocks
+
+
+def event_to_dict(event_name: str, start: datetime.datetime,
+                  end: datetime.datetime, all_day: bool = False) -> Dict[str, str]:
+    """A helper class for exporting calendar events to a CSV file."""
+    ret = dict()
+    ret["Subject"] = str(event_name)
+    ret["Start Date"] = str(start.date())
+    ret["Start Time"] = str(start.time())
+    ret["End Date"] = str(end.date())
+    ret["End Time"] = str(end.time())
+    ret["All Day Event"] = str(all_day)
+    return ret
 
 
 def _arg_parser() -> argparse.ArgumentParser:
@@ -280,7 +237,8 @@ def main():
         reader = csv.reader(csvfile)
         next(reader)  # skip header row
         with open(args.output_file, "w", newline="") as csvout:
-            writer = csv.DictWriter(csvout, Event.field_names, dialect="excel")
+            writer = csv.DictWriter(csvout, FIELD_NAMES, dialect="excel",
+                                    quoting=csv.QUOTE_ALL)
             writer.writeheader()
 
             for row in reader:
@@ -298,7 +256,7 @@ def main():
                 is_open_val = is_open and not is_special
                 day = RotationDay(date, number, is_open_val, *(row[4:]))
                 for block in day.create_blocks():
-                    writer.writerow(block.to_csv())
+                    writer.writerow(block)
 
 
 if __name__ == "__main__":
