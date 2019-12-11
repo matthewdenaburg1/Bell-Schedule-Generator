@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Creates the bell schedule calendar for SSFS
+Creates the events for the Bell Schedule calendar for SSFS.
 """
 
 from typing import Dict, List, Tuple
@@ -10,9 +10,9 @@ import csv
 import datetime
 
 
-# academic blocks - please leave in this order
-BLOCKS: List[str] = ["A Block", "G Block", "F Block", "E Block", "D Block",
-                     "C Block", "B Block"]
+# academic blocks
+BLOCKS: List[str] = ["A Block", "B Block", "C Block", "D Block", "E Block",
+                     "F Block", "G Block"]
 
 # block times (start, end) for Wednesday
 WED_TIMES: List[Tuple[datetime.time, datetime.time]] = [
@@ -42,12 +42,14 @@ REG_TIMES: List[Tuple[datetime.time, datetime.time]] = [
     (datetime.time(15, 10), datetime.time(15, 40)),  # MS Sports / US Acad help
 ]
 
+
 # Weekly MS Common Time activities
 MS_ACTIVITIES: List[str] = ["Advisory", "Tutorial", "MFW", "Tutorial",
                             "Committees"]
 # weekly US Common Time activities
 US_ACTIVITIES: List[str] = ["Advisory", "MFW", "Academic Help",
                             "Activity Period", "MFW"]
+
 
 class Event:
     """A helper class for exporting calendar events to a CSV file."""
@@ -84,18 +86,6 @@ class Event:
         string += " @%H:%M" if not self.all_day else ""
         string += "'}, all_day={self.all_day})"
         return string.format(self=self)
-
-    def __eq__(self, other: "Event") -> bool:
-        if other is None:
-            return False
-        if id(self) == id(other):
-            return True
-        if not isinstance(other, Event):
-            return False
-        if (self.name != other.name or self.start != other.start or
-                self.end != other.end):
-            return False
-        return True
 
     def to_csv(self) -> Dict[str, str]:
         """
@@ -139,7 +129,12 @@ class RotationDay:
         self.date: datetime.date = date
         self.day_number: int = day_number
         self.is_open: bool = is_open
-        self.all_day_events: List[str] = list(all_day_events)
+        self.all_day_events: List[str] = list()
+
+        # only add events that have titles
+        for all_day_event in all_day_events:
+            if all_day_event:
+                self.all_day_events.append(all_day_event)
 
         weekday: int = self.date.weekday()
         self.is_wednesday: bool = weekday == 2
@@ -178,46 +173,51 @@ class RotationDay:
     def _get_block_rotation(self) -> List[str]:
         """Get the block rotation using day_number.
 
-        A Block is the first block of Day 1. G Block is the first of Day 2,
-        etc. This is why BLOCKS is in the order it's in.
         >>> # all blocks
         >>> BLOCKS
-        ['A Block', 'G Block', 'F Block', 'E Block', 'D Block', 'C Block', 'B Block']
+        ['A Block', 'B Block', 'C Block', 'D Block', 'E Block', 'F Block', 'G Block']
 
         The example below gives the rotation for Day 1, dropping G Block. See
         the following article for an explanation of the slice notation:
         https://stackoverflow.com/a/509295/664950
         >>> # Day 1: drop G block
         >>> day = 0
-        >>> BLOCKS[day::-1]
-        ['A Block']
-        >>> BLOCKS[-1:day + 1:-1]
-        ['B Block', 'C Block', 'D Block', 'E Block', 'F Block']
-        >>> BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
+        >>> BLOCKS[(6 - day) % 7 + 1:]
+        []
+        >>> BLOCKS[:(6 - day) % 7]
+        ['A Block', 'B Block', 'C Block', 'D Block', 'E Block', 'F Block']
+        >>> BLOCKS[(6 - day) % 7 + 1:] + BLOCKS[:(6 - day) % 7]
         ['A Block', 'B Block', 'C Block', 'D Block', 'E Block', 'F Block']
 
         This example gives the rotation for Day 2, dropping F Block.
         >>> # Day 2: drop F block
         >>> day = 1
-        >>> BLOCKS[day::-1]
-        ['G Block', 'A Block']
-        >>> BLOCKS[-1:day + 1:-1]
-        ['B Block', 'C Block', 'D Block', 'E Block']
-        >>> BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
+        >>> BLOCKS[(6 - day) % 7 + 1:]
+        ['G Block']
+        >>> BLOCKS[:(6 - day) % 7]
+        ['A Block', 'B Block', 'C Block', 'D Block', 'E Block']
+        >>> BLOCKS[(6 - day) % 7 + 1:] + BLOCKS[:(6 - day) % 7]
         ['G Block', 'A Block', 'B Block', 'C Block', 'D Block', 'E Block']
         """
 
         # lists are 0-indexed, so decrease the day number by one
         day = self.day_number - 1
         # put the blocks in the right order (see docstring)
-        return BLOCKS[day::-1] + BLOCKS[-1:day + 1:-1]
+        return BLOCKS[(6 - day) % 7 + 1:] + BLOCKS[:(6 - day) % 7]
 
     def get_event_times(self, block_num: int) -> Tuple[datetime.datetime, datetime.datetime]:
         """Get the start and end times associated with this block_num"""
         # use the correct times depending on if it's wednesday or not
         times = REG_TIMES if not self.is_wednesday else WED_TIMES
         # get the actual values
-        start, end = times[block_num]
+        try:
+            start, end = times[block_num]
+        except:
+            day = self.day_number - 1
+            print("day - 1:", day)
+            print("1st:", BLOCKS[day::-1])
+            print("2nd:", BLOCKS[-1:day + 1:-1])
+            raise
         # combine date and time into datetime
         start = datetime.datetime.combine(self.date, start)
         end = datetime.datetime.combine(self.date, end)
@@ -244,7 +244,14 @@ class RotationDay:
             if self.is_wednesday and num == len(self.blocks):
                 break
             # create the event (block name, and expand `get_event_times`)
-            block = Event(self.blocks[num], *self.get_event_times(num))
+            try:
+                block = Event(self.blocks[num], *self.get_event_times(num))
+            except:
+                print(repr(self))
+                print("len(self.blocks) = " + str(len(self.blocks)))
+                # for i in self.blocks:
+                #     print("  " + str(i))
+                raise
             # add the new event to the list
             blocks.append(block)
 
