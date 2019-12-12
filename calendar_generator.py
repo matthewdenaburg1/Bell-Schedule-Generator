@@ -53,6 +53,7 @@ US_ACTIVITIES: List[str] = ["Advisory", "MFW", "Academic Help",
 FIELD_NAMES: List[str] = ["Subject", "Start Date", "Start Time", "End Date",
                           "End Time", "All Day Event"]
 
+
 class RotationDay:
     """
     Creates a day of the block schedule calendar.
@@ -207,10 +208,10 @@ def event_to_dict(event_name: str, start: datetime.datetime,
     """A helper class for exporting calendar events to a CSV file."""
     ret = dict()
     ret["Subject"] = str(event_name)
-    ret["Start Date"] = str(start.date())
-    ret["Start Time"] = str(start.time())
-    ret["End Date"] = str(end.date())
-    ret["End Time"] = str(end.time())
+    ret["Start Date"] = str(start.date().strftime("%m/%d/%Y"))
+    ret["Start Time"] = str(start.time().strftime("%I:%M %p"))
+    ret["End Date"] = str(end.date().strftime("%m/%d/%Y"))
+    ret["End Time"] = str(end.time().strftime("%I:%M %p"))
     ret["All Day Event"] = str(all_day)
     return ret
 
@@ -237,8 +238,7 @@ def main():
         reader = csv.reader(csvfile)
         next(reader)  # skip header row
         with open(args.output_file, "w", newline="") as csvout:
-            writer = csv.DictWriter(csvout, FIELD_NAMES, dialect="excel",
-                                    quoting=csv.QUOTE_ALL)
+            writer = csv.DictWriter(csvout, FIELD_NAMES, quoting=csv.QUOTE_ALL)
             writer.writeheader()
 
             for row in reader:
